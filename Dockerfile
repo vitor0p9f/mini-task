@@ -1,7 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # ---- Build stage -------------------------------------------------------------
-FROM elixir:1.18-slim AS build
+# elixir:1.18.4-slim is based on Debian trixie. The runtime stage must use
+# the same Debian release because the release bundles ERTS, which is linked
+# against the build image's glibc.
+FROM elixir:1.18.4-slim AS build
 
 ENV MIX_ENV=prod
 
@@ -33,7 +36,7 @@ RUN mix deps.compile \
     && mix release
 
 # ---- Runtime stage -----------------------------------------------------------
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
