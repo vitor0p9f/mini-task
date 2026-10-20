@@ -78,7 +78,7 @@ defmodule MiniTask.Tasks do
     now = DateTime.utc_now(:second)
     user_ids = Enum.map(users, & &1.id)
 
-    Repo.transact(fn ->
+    Repo.transaction(fn ->
       delete_removed_assignments(task.id, user_ids)
 
       entries =
