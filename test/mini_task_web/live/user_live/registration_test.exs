@@ -6,10 +6,12 @@ defmodule MiniTaskWeb.UserLive.RegistrationTest do
 
   describe "Registration page" do
     test "renders registration page", %{conn: conn} do
-      {:ok, _lv, html} = live(conn, ~p"/users/register")
+      {:ok, lv, html} = live(conn, ~p"/users/register")
 
       assert html =~ "Register"
       assert html =~ "Log in"
+      assert has_element?(lv, "#registration_form #user_password")
+      assert has_element?(lv, "#registration_form #user_password_confirmation")
     end
 
     test "redirects if already logged in", %{conn: conn} do
@@ -36,18 +38,79 @@ defmodule MiniTaskWeb.UserLive.RegistrationTest do
   end
 
   describe "register user" do
-    test "creates account but does not log in", %{conn: conn} do
+    test "creates account and redirects to log in", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
+
+      attrs =
+        valid_user_attributes(email: email)
+        |> Map.put(:password, valid_user_password())
+        |> Map.put(:password_confirmation, valid_user_password())
+
+      form = form(lv, "#registration_form", user: attrs)
 
       {:ok, _lv, html} =
         render_submit(form)
         |> follow_redirect(conn, ~p"/users/log-in")
 
-      assert html =~
-               ~r/An email was sent to .*, please access it to confirm your account/
+      assert html =~ "Account created successfully. Please log in."
+      assert MiniTask.Accounts.get_user_by_email(email).confirmed_at
+      assert MiniTask.Repo.all(MiniTask.Accounts.UserToken) == []
+    end
+
+    test "requires a password", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+
+      result =
+        lv
+        |> form("#registration_form", user: valid_user_attributes())
+        |> render_submit()
+
+      assert result =~ "can&#39;t be blank"
+    end
+
+    test "renders errors when password confirmation does not match", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+
+      result =
+        lv
+        |> form("#registration_form",
+          user: %{
+            "email" => unique_user_email(),
+            "password" => valid_user_password(),
+            "password_confirmation" => "different password"
+          }
+        )
+        |> render_submit()
+
+      assert result =~ "does not match password"
+    end
+
+    test "registered user can log in with the chosen password", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/register")
+
+      email = unique_user_email()
+      password = valid_user_password()
+
+      attrs =
+        valid_user_attributes(email: email)
+        |> Map.put(:password, password)
+        |> Map.put(:password_confirmation, password)
+
+      {:ok, _lv, _html} =
+        lv
+        |> form("#registration_form", user: attrs)
+        |> render_submit()
+        |> follow_redirect(conn, ~p"/users/log-in")
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"email" => email, "password" => password}
+        })
+
+      assert get_session(conn, :user_token)
+      assert redirected_to(conn) == ~p"/"
     end
 
     test "renders errors for duplicated email", %{conn: conn} do
@@ -58,7 +121,11 @@ defmodule MiniTaskWeb.UserLive.RegistrationTest do
       result =
         lv
         |> form("#registration_form",
-          user: %{"email" => user.email}
+          user: %{
+            "email" => user.email,
+            "password" => valid_user_password(),
+            "password_confirmation" => valid_user_password()
+          }
         )
         |> render_submit()
 

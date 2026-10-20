@@ -74,10 +74,42 @@ defmodule MiniTask.Accounts do
       {:error, %Ecto.Changeset{}}
 
   """
-  def register_user(attrs) do
+  def register_user(attrs, opts \\ []) do
+    changeset =
+      %User{}
+      |> User.email_changeset(attrs)
+      |> maybe_register_with_password(attrs, opts)
+
+    Repo.insert(changeset)
+  end
+
+  defp maybe_register_with_password(changeset, attrs, opts) do
+    cond do
+      password_provided?(attrs) ->
+        changeset
+        |> User.password_changeset(attrs)
+        # Password registrations are confirmed immediately so the app can be
+        # used without an email provider. Magic-link registrations (no password)
+        # still go through the confirmation flow.
+        |> Ecto.Changeset.put_change(:confirmed_at, DateTime.utc_now(:second))
+
+      Keyword.get(opts, :require_password, false) ->
+        User.password_changeset(changeset, attrs)
+
+      true ->
+        changeset
+    end
+  end
+
+  defp password_provided?(attrs) do
+    password = Map.get(attrs, "password") || Map.get(attrs, :password)
+    is_binary(password) and password != ""
+  end
+
+  def change_user_registration(attrs \\ %{}) do
     %User{}
-    |> User.email_changeset(attrs)
-    |> Repo.insert()
+    |> User.email_changeset(attrs, validate_unique: false)
+    |> User.password_changeset(attrs, hash_password: false)
   end
 
   ## Settings

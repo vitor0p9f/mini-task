@@ -85,6 +85,58 @@ defmodule MiniTask.AccountsTest do
       assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
     end
+
+    test "registers and confirms users with a password" do
+      email = unique_user_email()
+      password = valid_user_password()
+
+      attrs = %{
+        email: email,
+        password: password,
+        password_confirmation: password
+      }
+
+      assert {:ok, user} = Accounts.register_user(attrs)
+      assert user.email == email
+      assert user.confirmed_at
+      assert user.hashed_password
+      assert is_nil(user.password)
+      assert %User{} = Accounts.get_user_by_email_and_password(email, password)
+    end
+
+    test "requires a password when asked to" do
+      assert {:error, changeset} =
+               Accounts.register_user(
+                 %{email: unique_user_email()},
+                 require_password: true
+               )
+
+      assert %{password: ["can't be blank"]} = errors_on(changeset)
+    end
+
+    test "validates password length" do
+      password = "short"
+
+      assert {:error, changeset} =
+               Accounts.register_user(%{
+                 email: unique_user_email(),
+                 password: password,
+                 password_confirmation: password
+               })
+
+      assert "should be at least 12 character(s)" in errors_on(changeset).password
+    end
+
+    test "validates password confirmation" do
+      assert {:error, changeset} =
+               Accounts.register_user(%{
+                 email: unique_user_email(),
+                 password: valid_user_password(),
+                 password_confirmation: "different password"
+               })
+
+      assert %{password_confirmation: ["does not match password"]} = errors_on(changeset)
+    end
   end
 
   describe "sudo_mode?/2" do
