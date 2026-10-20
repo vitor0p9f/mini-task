@@ -9,6 +9,10 @@ defmodule MiniTask.Accounts.User do
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
 
+    has_many :tasks, MiniTask.Tasks.Task
+    has_many :task_assignments, MiniTask.Tasks.TaskAssignment
+    has_many :assigned_tasks, through: [:task_assignments, :task]
+
     timestamps(type: :utc_datetime)
   end
 
