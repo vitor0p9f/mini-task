@@ -1,0 +1,16 @@
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+!.env.example
+_build
+deps
+cover
+doc
+tmp
+.expert
+.serena
+*.ez
+erl_crash.dump
+README.md
