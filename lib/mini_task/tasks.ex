@@ -78,7 +78,7 @@ defmodule MiniTask.Tasks do
     now = DateTime.utc_now(:second)
     user_ids = Enum.map(users, & &1.id)
 
-    Repo.transaction(fn ->
+    Repo.transact(fn ->
       delete_removed_assignments(task.id, user_ids)
 
       entries =
@@ -91,7 +91,7 @@ defmodule MiniTask.Tasks do
         conflict_target: [:task_id, :user_id]
       )
 
-      Repo.preload(task, :assignees, force: true)
+      {:ok, Repo.preload(task, :assignees, force: true)}
     end)
   end
 
