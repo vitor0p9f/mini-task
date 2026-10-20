@@ -24,8 +24,10 @@ COPY priv priv
 COPY assets assets
 COPY lib lib
 
-# Compiles the app, builds/digests assets and assembles the OTP release.
+# The app must be compiled before the assets: LiveView generates the
+# phoenix-colocated CSS/JS imports consumed by Tailwind and esbuild.
 RUN mix deps.compile \
+    && mix compile \
     && mix assets.setup \
     && mix assets.deploy \
     && mix release
