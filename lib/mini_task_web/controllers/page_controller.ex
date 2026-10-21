@@ -2,6 +2,10 @@ defmodule MiniTaskWeb.PageController do
   use MiniTaskWeb, :controller
 
   def home(conn, _params) do
-    render(conn, :home)
+    if conn.assigns.current_scope do
+      redirect(conn, to: ~p"/tasks")
+    else
+      redirect(conn, to: ~p"/users/log-in")
+    end
   end
 end
