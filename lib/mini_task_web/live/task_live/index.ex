@@ -74,7 +74,7 @@ defmodule MiniTaskWeb.TaskLive.Index do
     case socket.assigns.editing_task do
       nil ->
         with {:ok, task} <- Tasks.create_task(scope, task_params),
-             {:ok, task} <- Tasks.assign_users(scope, task, asignee_ids) do
+             {:ok, _task} <- Tasks.assign_users(scope, task, asignee_ids) do
           MiniTaskWeb.Endpoint.broadcast_from(
             self(),
             "tasks",
@@ -98,7 +98,7 @@ defmodule MiniTaskWeb.TaskLive.Index do
 
       task ->
         with {:ok, task} <- Tasks.update_task(scope, task, task_params),
-             {:ok, task} <- Tasks.assign_users(scope, task, asignee_ids) do
+             {:ok, _task} <- Tasks.assign_users(scope, task, asignee_ids) do
           MiniTaskWeb.Endpoint.broadcast_from(
             self(),
             "tasks",
