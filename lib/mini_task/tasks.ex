@@ -15,6 +15,12 @@ defmodule MiniTask.Tasks do
     |> Repo.all()
   end
 
+  def list_assignable_users do
+    Accounts.User
+    |> order_by([user], asc: user.email)
+    |> Repo.all()
+  end
+
   def get_task!(%Scope{user: %{id: user_id}}, task_id) do
     Task
     |> visible_to(user_id)
@@ -60,6 +66,13 @@ defmodule MiniTask.Tasks do
   end
 
   # Helpers
+  def visible?(%Scope{user: %{id: user_id}}, %Task{id: task_id}) do
+    Task
+    |> visible_to(user_id)
+    |> where([task], task.id == ^task_id)
+    |> Repo.exists?()
+  end
+
   defp visible_to(query, user_id) do
     from task in query,
       left_join: assignment in assoc(task, :assignments),
